@@ -2,12 +2,15 @@
 import os
 import re
 import json
-import webbrowser
-import threading
 import hashlib
 from datetime import datetime
 from flask import Flask, render_template_string, request, jsonify
 from pathlib import Path
+
+# 仅在非 Vercel 环境中导入这些模块
+if not os.environ.get('VERCEL'):
+    import webbrowser
+    import threading
 
 # 导入数据库模块
 try:
@@ -1604,7 +1607,10 @@ def get_users_api():
 
 def open_browser():
     """延迟打开浏览器（仅本地开发时使用）"""
+    if os.environ.get('VERCEL'):
+        return  # Vercel 环境中不执行
     import time
+    import webbrowser
     time.sleep(1.5)
     webbrowser.open('http://127.0.0.1:5000')
 
@@ -1612,9 +1618,9 @@ def open_browser():
 # 本地开发时运行服务器
 if __name__ == '__main__':
     # 检查是否在Vercel环境
-    import os
     if not os.environ.get('VERCEL'):
         # 本地开发模式
+        import threading
         threading.Thread(target=open_browser, daemon=True).start()
         app.run(debug=False, port=5000, use_reloader=False)
     else:
