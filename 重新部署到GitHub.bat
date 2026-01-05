@@ -65,8 +65,8 @@ git config user.email "994404569@qq.com" 2>nul
 REM 使用 Token 推送（将 Token 嵌入 URL）
 git remote set-url origin https://%GITHUB_TOKEN%@github.com/mashitan1111/todo-list-app.git
 
-REM 使用 Python 脚本推送并记录日志
-python 推送并记录日志.py
+REM 使用 Python 脚本推送
+python 推送代码.py
 set PUSH_RESULT=%ERRORLEVEL%
 
 if %PUSH_RESULT% EQU 0 (

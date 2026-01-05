@@ -23,10 +23,20 @@ except ImportError:
 app = Flask(__name__)
 
 # 文件路径配置
-BASE_DIR = Path(__file__).parent.parent.parent
-TODO_FILE = BASE_DIR / "工作待办清单.md"
-RECOMMEND_FILE = BASE_DIR / "RAG知识库" / "14_工作内容管理库" / "02_推荐改变清单.md"
-STATUS_FILE = BASE_DIR / "工具和脚本" / "工具脚本" / "任务状态.json"
+# 在 Vercel 环境中，使用当前目录；本地开发时使用父目录
+if os.environ.get('VERCEL'):
+    # Vercel 环境：使用当前文件所在目录
+    BASE_DIR = Path(__file__).parent
+    # Vercel 环境中这些文件不存在，使用空列表
+    TODO_FILE = None
+    RECOMMEND_FILE = None
+    STATUS_FILE = BASE_DIR / "任务状态.json"  # 使用相对路径
+else:
+    # 本地开发环境
+    BASE_DIR = Path(__file__).parent.parent.parent
+    TODO_FILE = BASE_DIR / "工作待办清单.md"
+    RECOMMEND_FILE = BASE_DIR / "RAG知识库" / "14_工作内容管理库" / "02_推荐改变清单.md"
+    STATUS_FILE = BASE_DIR / "工具和脚本" / "工具脚本" / "任务状态.json"
 
 # 初始化数据库（如果可用）
 if USE_DATABASE:
@@ -39,7 +49,7 @@ if USE_DATABASE:
 
 def read_markdown_tasks(file_path):
     """读取Markdown文件中的任务（支持多行任务）"""
-    if not file_path.exists():
+    if file_path is None or not file_path.exists():
         return []
     
     tasks = []
@@ -92,7 +102,7 @@ def read_markdown_tasks(file_path):
 
 def read_recommendations(file_path):
     """读取推荐改变清单"""
-    if not file_path.exists():
+    if file_path is None or not file_path.exists():
         return []
     
     recommendations = []
@@ -124,13 +134,15 @@ def read_recommendations(file_path):
 
 def load_status():
     """加载任务状态"""
-    if STATUS_FILE.exists():
+    if STATUS_FILE and STATUS_FILE.exists():
         with open(STATUS_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     return {}
 
 def save_status(status):
     """保存任务状态"""
+    if STATUS_FILE is None:
+        return  # Vercel 环境中不保存状态文件
     STATUS_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(STATUS_FILE, 'w', encoding='utf-8') as f:
         json.dump(status, f, ensure_ascii=False, indent=2)
@@ -147,15 +159,15 @@ def index():
                 task['completed'] = task.get('progress', 0) >= 100 or task.get('status') == 'completed'
         except Exception as e:
             print(f"Error loading from database: {e}, falling back to Markdown")
-            tasks = read_markdown_tasks(TODO_FILE)
+            tasks = read_markdown_tasks(TODO_FILE) if TODO_FILE else []
             status = load_status()
             for task in tasks:
                 task_id = task['id']
                 if task_id in status:
                     task['completed'] = status[task_id]
     else:
-        tasks = read_markdown_tasks(TODO_FILE)
-        recommendations = read_recommendations(RECOMMEND_FILE)
+        tasks = read_markdown_tasks(TODO_FILE) if TODO_FILE else []
+        recommendations = read_recommendations(RECOMMEND_FILE) if RECOMMEND_FILE else []
         status = load_status()
         
         # 修复：使用任务ID而不是完整文本作为key
@@ -174,9 +186,9 @@ def index():
     
     # 读取推荐（如果数据库不可用）
     if not USE_DATABASE:
-        recommendations = read_recommendations(RECOMMEND_FILE)
+        recommendations = read_recommendations(RECOMMEND_FILE) if RECOMMEND_FILE else []
     else:
-        recommendations = read_recommendations(RECOMMEND_FILE)  # 仍然从文件读取推荐
+        recommendations = read_recommendations(RECOMMEND_FILE) if RECOMMEND_FILE else []  # 仍然从文件读取推荐
     
     # 按优先级和完成状态分组
     urgent_pending = [t for t in tasks if not t['completed'] and t.get('priority') == 'urgent']
@@ -1478,7 +1490,7 @@ def toggle_task():
         
         # 如果传入的是旧格式（任务文本），尝试转换为ID
         if len(task_id) > 32:
-            tasks = read_markdown_tasks(TODO_FILE)
+            tasks = read_markdown_tasks(TODO_FILE) if TODO_FILE else []
             for task in tasks:
                 if task['text'] == task_id:
                     task_id = task['id']

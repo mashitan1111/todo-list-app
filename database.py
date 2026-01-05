@@ -9,9 +9,12 @@ from pathlib import Path
 import os
 
 # Vercel环境使用/tmp目录（临时存储）
+# 注意：Vercel 的 /tmp 目录在函数调用之间可能不持久
 if os.environ.get('VERCEL'):
     BASE_DIR = Path('/tmp')
     DB_FILE = BASE_DIR / "tasks.db"
+    # 确保 /tmp 目录存在
+    BASE_DIR.mkdir(parents=True, exist_ok=True)
 else:
     BASE_DIR = Path(__file__).parent.parent.parent
     DB_FILE = BASE_DIR / "工具和脚本" / "工具脚本" / "tasks.db"
