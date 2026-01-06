@@ -184,6 +184,22 @@ def save_status(status):
 
 def fetch_from_github(github_path):
     """从 GitHub 仓库读取文件内容（Vercel 环境使用）"""
+    # #region agent log
+    log_data = {
+        "sessionId": "debug-session",
+        "runId": "run1",
+        "hypothesisId": "B",
+        "location": "app.py:185",
+        "message": "fetch_from_github called",
+        "data": {"github_path": github_path, "vercel": bool(os.environ.get('VERCEL'))},
+        "timestamp": int(__import__('time').time() * 1000)
+    }
+    try:
+        with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+    except: pass
+    # #endregion
+    
     if not os.environ.get('VERCEL'):
         return None
     
@@ -200,27 +216,105 @@ def fetch_from_github(github_path):
     
     try:
         response = requests.get(api_url, params={"ref": branch}, timeout=10)
+        # #region agent log
+        log_data = {
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": "B",
+            "location": "app.py:202",
+            "message": "GitHub API response",
+            "data": {"status_code": response.status_code, "url": api_url},
+            "timestamp": int(__import__('time').time() * 1000)
+        }
+        try:
+            with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+                f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+        except: pass
+        # #endregion
+        
         if response.status_code == 200:
             data = response.json()
             if data.get("content"):
                 # Base64 解码（GitHub API 返回的 content 是 base64 编码的）
                 content = base64.b64decode(data["content"]).decode('utf-8')
+                # #region agent log
+                log_data = {
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "B",
+                    "location": "app.py:207",
+                    "message": "GitHub content fetched",
+                    "data": {"content_length": len(content), "first_100_chars": content[:100]},
+                    "timestamp": int(__import__('time').time() * 1000)
+                }
+                try:
+                    with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+                        f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+                except: pass
+                # #endregion
                 return content
         elif response.status_code == 404:
             print(f"File not found on GitHub: {github_path}")
     except Exception as e:
         print(f"Error fetching from GitHub ({github_path}): {e}")
+        # #region agent log
+        log_data = {
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": "B",
+            "location": "app.py:212",
+            "message": "GitHub fetch error",
+            "data": {"error": str(e), "github_path": github_path},
+            "timestamp": int(__import__('time').time() * 1000)
+        }
+        try:
+            with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+                f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+        except: pass
+        # #endregion
     
     return None
 
 def sync_tasks_from_github():
     """从 GitHub 同步任务到数据库（仅在 Vercel 环境且数据库为空时）"""
+    # #region agent log
+    log_data = {
+        "sessionId": "debug-session",
+        "runId": "run1",
+        "hypothesisId": "A",
+        "location": "app.py:216",
+        "message": "sync_tasks_from_github called",
+        "data": {"USE_DATABASE": USE_DATABASE, "VERCEL": bool(os.environ.get('VERCEL'))},
+        "timestamp": int(__import__('time').time() * 1000)
+    }
+    try:
+        with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+    except: pass
+    # #endregion
+    
     if not USE_DATABASE or not os.environ.get('VERCEL'):
         return False
     
     try:
         # 检查数据库是否为空
         tasks = get_all_tasks()
+        # #region agent log
+        log_data = {
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": "A",
+            "location": "app.py:223",
+            "message": "Database task count",
+            "data": {"task_count": len(tasks) if tasks else 0},
+            "timestamp": int(__import__('time').time() * 1000)
+        }
+        try:
+            with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+                f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+        except: pass
+        # #endregion
+        
         if tasks:
             return False  # 数据库已有数据，不需要同步
         
@@ -237,6 +331,22 @@ def sync_tasks_from_github():
             if content:
                 break
         
+        # #region agent log
+        log_data = {
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": "A",
+            "location": "app.py:240",
+            "message": "GitHub content check",
+            "data": {"content_found": bool(content), "content_length": len(content) if content else 0},
+            "timestamp": int(__import__('time').time() * 1000)
+        }
+        try:
+            with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+                f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+        except: pass
+        # #endregion
+        
         if not content:
             print("Could not fetch tasks from GitHub")
             return False
@@ -245,8 +355,10 @@ def sync_tasks_from_github():
         tasks = []
         pattern = r'- \[([ x])\] ((?:[^\n]|(?:\n(?!- \[)))+?)(?=\n- \[|$)'
         matches = re.finditer(pattern, content, re.MULTILINE | re.DOTALL)
+        match_count = 0
         
         for match in matches:
+            match_count += 1
             status = match.group(1)
             task_text = match.group(2)
             
@@ -283,7 +395,38 @@ def sync_tasks_from_github():
                     tasks.append(task_text)
             except Exception as e:
                 print(f"Error importing task: {e}")
+                # #region agent log
+                log_data = {
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "C",
+                    "location": "app.py:285",
+                    "message": "Task import error",
+                    "data": {"error": str(e), "task_text_preview": task_text[:50]},
+                    "timestamp": int(__import__('time').time() * 1000)
+                }
+                try:
+                    with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+                        f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+                except: pass
+                # #endregion
                 continue
+        
+        # #region agent log
+        log_data = {
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": "A",
+            "location": "app.py:288",
+            "message": "Sync completed",
+            "data": {"matches_found": match_count, "tasks_imported": len(tasks)},
+            "timestamp": int(__import__('time').time() * 1000)
+        }
+        try:
+            with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+                f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+        except: pass
+        # #endregion
         
         print(f"Synced {len(tasks)} tasks from GitHub")
         return len(tasks) > 0
@@ -294,15 +437,77 @@ def sync_tasks_from_github():
 @app.route('/')
 def index():
     """主页面"""
+    # #region agent log
+    log_data = {
+        "sessionId": "debug-session",
+        "runId": "run1",
+        "hypothesisId": "A",
+        "location": "app.py:294",
+        "message": "index() called",
+        "data": {"USE_DATABASE": USE_DATABASE, "VERCEL": bool(os.environ.get('VERCEL'))},
+        "timestamp": int(__import__('time').time() * 1000)
+    }
+    try:
+        with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+    except: pass
+    # #endregion
+    
     # 优先使用数据库，否则回退到Markdown+JSON
     if USE_DATABASE:
         try:
             tasks = get_all_tasks()
+            # #region agent log
+            log_data = {
+                "sessionId": "debug-session",
+                "runId": "run1",
+                "hypothesisId": "A",
+                "location": "app.py:300",
+                "message": "Initial task load",
+                "data": {"task_count": len(tasks) if tasks else 0},
+                "timestamp": int(__import__('time').time() * 1000)
+            }
+            try:
+                with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+                    f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+            except: pass
+            # #endregion
+            
             # 如果数据库为空且是 Vercel 环境，尝试从 GitHub 同步
             if not tasks and os.environ.get('VERCEL'):
                 print("Database is empty, attempting to sync from GitHub...")
-                sync_tasks_from_github()
+                sync_result = sync_tasks_from_github()
+                # #region agent log
+                log_data = {
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "A",
+                    "location": "app.py:304",
+                    "message": "Sync result",
+                    "data": {"sync_success": sync_result},
+                    "timestamp": int(__import__('time').time() * 1000)
+                }
+                try:
+                    with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+                        f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+                except: pass
+                # #endregion
                 tasks = get_all_tasks()  # 重新加载
+                # #region agent log
+                log_data = {
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "A",
+                    "location": "app.py:305",
+                    "message": "After sync task load",
+                    "data": {"task_count": len(tasks) if tasks else 0},
+                    "timestamp": int(__import__('time').time() * 1000)
+                }
+                try:
+                    with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+                        f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+                except: pass
+                # #endregion
             
             # 转换数据库格式到前端格式
             for task in tasks:
