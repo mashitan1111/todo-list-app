@@ -1967,6 +1967,97 @@ def open_browser():
     webbrowser.open('http://127.0.0.1:5000')
 
 # Vercel需要导出app对象
+@app.route('/debug')
+def debug_info():
+    """调试信息页面"""
+    debug_info = {
+        'USE_DATABASE': USE_DATABASE,
+        'VERCEL': bool(os.environ.get('VERCEL')),
+        'TODO_FILE': str(TODO_FILE) if TODO_FILE else None,
+        'STATUS_FILE': str(STATUS_FILE) if STATUS_FILE else None,
+    }
+    
+    # 尝试获取数据库任务
+    task_count = 0
+    if USE_DATABASE:
+        try:
+            tasks = get_all_tasks()
+            task_count = len(tasks) if tasks else 0
+            debug_info['database_task_count'] = task_count
+        except Exception as e:
+            debug_info['database_error'] = str(e)
+    
+    # 尝试从 GitHub 获取文件（仅测试）
+    github_test = {}
+    if os.environ.get('VERCEL'):
+        try:
+            test_paths = ["圆心工作/工作待办清单.md", "工作待办清单.md"]
+            for path in test_paths:
+                content = fetch_from_github(path)
+                if content:
+                    github_test[path] = {
+                        'found': True,
+                        'content_length': len(content),
+                        'preview': content[:200]
+                    }
+                    break
+                else:
+                    github_test[path] = {'found': False}
+        except Exception as e:
+            github_test['error'] = str(e)
+    
+    debug_info['github_test'] = github_test
+    
+    # 格式化输出
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>调试信息</title>
+        <style>
+            body {{ font-family: monospace; padding: 20px; background: #f5f5f5; }}
+            .section {{ background: white; padding: 15px; margin: 10px 0; border-radius: 5px; }}
+            .key {{ color: #0066cc; font-weight: bold; }}
+            .value {{ color: #333; }}
+            .error {{ color: red; }}
+            .success {{ color: green; }}
+            pre {{ background: #f0f0f0; padding: 10px; border-radius: 3px; overflow-x: auto; }}
+        </style>
+    </head>
+    <body>
+        <h1>🔍 调试信息</h1>
+        
+        <div class="section">
+            <h2>环境变量</h2>
+            <p><span class="key">USE_DATABASE:</span> <span class="value">{debug_info['USE_DATABASE']}</span></p>
+            <p><span class="key">VERCEL:</span> <span class="value">{debug_info['VERCEL']}</span></p>
+            <p><span class="key">TODO_FILE:</span> <span class="value">{debug_info['TODO_FILE']}</span></p>
+            <p><span class="key">STATUS_FILE:</span> <span class="value">{debug_info['STATUS_FILE']}</span></p>
+        </div>
+        
+        <div class="section">
+            <h2>数据库状态</h2>
+            <p><span class="key">任务数量:</span> <span class="value">{task_count}</span></p>
+            {f'<p class="error">数据库错误: {debug_info.get("database_error", "无")}</p>' if 'database_error' in debug_info else ''}
+        </div>
+        
+        <div class="section">
+            <h2>GitHub 同步测试</h2>
+            <pre>{json.dumps(github_test, ensure_ascii=False, indent=2)}</pre>
+        </div>
+        
+        <div class="section">
+            <h2>完整调试信息 (JSON)</h2>
+            <pre>{json.dumps(debug_info, ensure_ascii=False, indent=2)}</pre>
+        </div>
+        
+        <p><a href="/">← 返回首页</a></p>
+    </body>
+    </html>
+    """
+    return html
+
 # 本地开发时运行服务器
 if __name__ == '__main__':
     # 检查是否在Vercel环境
