@@ -6,8 +6,38 @@ import hashlib
 from datetime import datetime
 from flask import Flask, render_template_string, request, jsonify
 from pathlib import Path
-import requests
-import base64
+
+# #region agent log
+try:
+    import requests
+    import base64
+    # Log successful import
+    log_data = {
+        "sessionId": "debug-session",
+        "runId": "run1",
+        "hypothesisId": "A",
+        "location": "app.py:9",
+        "message": "requests import successful",
+        "data": {"module": "requests", "status": "ok"},
+        "timestamp": int(__import__('time').time() * 1000)
+    }
+    with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+        f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+except ImportError as e:
+    # Log import failure
+    log_data = {
+        "sessionId": "debug-session",
+        "runId": "run1",
+        "hypothesisId": "A",
+        "location": "app.py:9",
+        "message": "requests import failed",
+        "data": {"error": str(e), "status": "failed"},
+        "timestamp": int(__import__('time').time() * 1000)
+    }
+    with open(r"c:\Users\温柔的男子啊\AppData\Roaming\Cursor\logs\20260104T213527\window1\exthost\ms-vscode.powershell\.cursor\debug.log", "a", encoding="utf-8") as f:
+        f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+    raise
+# #endregion
 
 # 仅在非 Vercel 环境中导入这些模块
 if not os.environ.get('VERCEL'):

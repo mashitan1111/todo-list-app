@@ -1,4 +1,5 @@
 Flask==2.3.3
 Werkzeug==2.3.7
 typing-extensions==4.5.0
+requests==2.31.0
 
