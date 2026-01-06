@@ -6,6 +6,8 @@ import hashlib
 from datetime import datetime
 from flask import Flask, render_template_string, request, jsonify
 from pathlib import Path
+import requests
+import base64
 
 # 仅在非 Vercel 环境中导入这些模块
 if not os.environ.get('VERCEL'):
@@ -150,6 +152,115 @@ def save_status(status):
     with open(STATUS_FILE, 'w', encoding='utf-8') as f:
         json.dump(status, f, ensure_ascii=False, indent=2)
 
+def fetch_from_github(github_path):
+    """从 GitHub 仓库读取文件内容（Vercel 环境使用）"""
+    if not os.environ.get('VERCEL'):
+        return None
+    
+    # GitHub 仓库信息
+    repo_owner = "mashitan1111"
+    repo_name = "todo-list-app"
+    branch = "main"
+    
+    # 确保路径使用正斜杠
+    github_path = github_path.replace("\\", "/")
+    
+    # 构建 GitHub API URL
+    api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/contents/{github_path}"
+    
+    try:
+        response = requests.get(api_url, params={"ref": branch}, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("content"):
+                # Base64 解码（GitHub API 返回的 content 是 base64 编码的）
+                content = base64.b64decode(data["content"]).decode('utf-8')
+                return content
+        elif response.status_code == 404:
+            print(f"File not found on GitHub: {github_path}")
+    except Exception as e:
+        print(f"Error fetching from GitHub ({github_path}): {e}")
+    
+    return None
+
+def sync_tasks_from_github():
+    """从 GitHub 同步任务到数据库（仅在 Vercel 环境且数据库为空时）"""
+    if not USE_DATABASE or not os.environ.get('VERCEL'):
+        return False
+    
+    try:
+        # 检查数据库是否为空
+        tasks = get_all_tasks()
+        if tasks:
+            return False  # 数据库已有数据，不需要同步
+        
+        # 从 GitHub 读取 Markdown 文件
+        # 尝试多个可能的路径
+        github_paths = [
+            "圆心工作/工作待办清单.md",
+            "工作待办清单.md"
+        ]
+        
+        content = None
+        for path in github_paths:
+            content = fetch_from_github(path)
+            if content:
+                break
+        
+        if not content:
+            print("Could not fetch tasks from GitHub")
+            return False
+        
+        # 解析 Markdown 任务
+        tasks = []
+        pattern = r'- \[([ x])\] ((?:[^\n]|(?:\n(?!- \[)))+?)(?=\n- \[|$)'
+        matches = re.finditer(pattern, content, re.MULTILINE | re.DOTALL)
+        
+        for match in matches:
+            status = match.group(1)
+            task_text = match.group(2)
+            
+            # 清理任务文本
+            task_lines = [line.rstrip() for line in task_text.split('\n')]
+            task_text = '\n'.join(task_lines).strip()
+            
+            # 检测优先级
+            priority = 'normal'
+            if '【紧急】' in task_text or '【P0】' in task_text:
+                priority = 'urgent'
+            elif '【P1】' in task_text:
+                priority = 'high'
+            
+            # 检测来源
+            source = ''
+            if '来源：' in task_text:
+                source_match = re.search(r'来源：(.+?)(?=\n|$)', task_text)
+                if source_match:
+                    source = source_match.group(1).strip()
+            
+            # 导入到数据库
+            try:
+                result = create_task(
+                    text=task_text,
+                    priority=priority,
+                    source=source,
+                    creator='GitHub Sync'
+                )
+                if result.get('success'):
+                    # 如果任务已完成，更新状态
+                    if status == 'x':
+                        update_task_progress(result['task_id'], 100, 'GitHub Sync', 'completed')
+                    tasks.append(task_text)
+            except Exception as e:
+                print(f"Error importing task: {e}")
+                continue
+        
+        print(f"Synced {len(tasks)} tasks from GitHub")
+        return len(tasks) > 0
+    except Exception as e:
+        print(f"Error syncing from GitHub: {e}")
+        return False
+
 @app.route('/')
 def index():
     """主页面"""
@@ -157,6 +268,12 @@ def index():
     if USE_DATABASE:
         try:
             tasks = get_all_tasks()
+            # 如果数据库为空且是 Vercel 环境，尝试从 GitHub 同步
+            if not tasks and os.environ.get('VERCEL'):
+                print("Database is empty, attempting to sync from GitHub...")
+                sync_tasks_from_github()
+                tasks = get_all_tasks()  # 重新加载
+            
             # 转换数据库格式到前端格式
             for task in tasks:
                 task['completed'] = task.get('progress', 0) >= 100 or task.get('status') == 'completed'
